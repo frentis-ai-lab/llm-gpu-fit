@@ -31,16 +31,15 @@ _GPUS_BY_ID = {g.id: g for g in load_gpus()}
 _USE_CASES_BY_ID = {u.id: u for u in load_use_cases()}
 
 
-def _on_submit(use_case, gpu_selection, commercial, korean, onprem, tool,
-               context, concurrency, quant_pref):
-    gpu_id, gpu_count_str = gpu_selection.split("::")
-    gpu_count = int(gpu_count_str)
+def _on_submit(use_case, gpu_model, gpu_count, commercial, korean, onprem, tool,
+               context, concurrency, quant_pref, framework):
     ui = UserInput(
-        use_case=use_case, gpu_id=gpu_id, gpu_count=gpu_count,
+        use_case=use_case, gpu_id=gpu_model, gpu_count=int(gpu_count),
         commercial_required=commercial, korean_priority=korean,
         onprem_required=onprem, tool_calling_required=tool,
         concurrency=int(concurrency), context_target=int(context),
         quantization_preference=quant_pref or None,
+        framework=framework or None,
     )
     recs = recommend(ui, _GPUS_BY_ID, _USE_CASES_BY_ID, top_k=3)
     main_md = render_results(recs)
@@ -59,45 +58,47 @@ def main() -> None:
     with gr.Blocks(title="LLM GPU Fit") as demo:
         gr.Markdown(
             "# 🧮 LLM GPU Fit\n\n"
-            "메모리 적합성·토폴로지·품질 벤치마크를 한 번에 검토해 알맞은 모델을 추천합니다.\n"
-            "용도와 GPU 구성, 조직 제약만 입력하세요."
+            "메모리 적합성·토폴로지·품질 벤치마크를 한 번에 검토해 알맞은 모델을 추천합니다. "
+            "용도, GPU, 제약만 고르면 됩니다."
         )
         with gr.Tab("추천 모드"):
             refs = build_wizard()
             results = gr.Markdown()
             refs["submit"].click(
                 _on_submit,
-                inputs=[refs["use_case"], refs["gpu_selection"],
+                inputs=[refs["use_case"], refs["gpu_model"], refs["gpu_count"],
                         refs["commercial"], refs["korean"], refs["onprem"], refs["tool"],
-                        refs["context"], refs["concurrency"], refs["quant_pref"]],
+                        refs["context"], refs["concurrency"],
+                        refs["quant_pref"], refs["framework"]],
                 outputs=results,
             )
 
-            gr.Markdown("---\n### 자주 묻는 시나리오")
+            gr.Markdown("---\n### 자주 묻는 시나리오\n버튼 한 번으로 양식이 채워지고 추천이 실행됩니다.")
             for preset in _load_presets():
                 with gr.Row():
                     with gr.Column(scale=4):
                         gr.Markdown(f"**{preset['title']}** — {preset['description']}")
                     with gr.Column(scale=1):
                         btn = gr.Button("적용하고 추천", size="sm")
-                        gpu_sel = f"{preset['gpu_id']}::{preset['gpu_count']}"
 
-                        def _apply(p_use=preset["use_case"], p_gpu=gpu_sel,
+                        def _apply(p_use=preset["use_case"],
+                                   p_gpu=preset["gpu_id"],
+                                   p_count=preset["gpu_count"],
                                    p_com=preset["commercial_required"],
                                    p_ko=preset["korean_priority"],
                                    p_op=preset["onprem_required"],
                                    p_tl=preset["tool_calling_required"],
                                    p_ctx=preset["context_target"],
                                    p_cc=preset["concurrency"]):
-                            return (p_use, p_gpu, p_com, p_ko, p_op, p_tl,
-                                    p_ctx, p_cc, "",
-                                    _on_submit(p_use, p_gpu, p_com, p_ko, p_op,
-                                               p_tl, p_ctx, p_cc, ""))
+                            md = _on_submit(p_use, p_gpu, p_count, p_com, p_ko,
+                                            p_op, p_tl, p_ctx, p_cc, "awq", "")
+                            return (p_use, p_gpu, p_count, p_com, p_ko, p_op, p_tl,
+                                    p_ctx, p_cc, "awq", "", md)
                         btn.click(_apply, inputs=[], outputs=[
-                            refs["use_case"], refs["gpu_selection"],
+                            refs["use_case"], refs["gpu_model"], refs["gpu_count"],
                             refs["commercial"], refs["korean"], refs["onprem"], refs["tool"],
-                            refs["context"], refs["concurrency"], refs["quant_pref"],
-                            results,
+                            refs["context"], refs["concurrency"],
+                            refs["quant_pref"], refs["framework"], results,
                         ])
 
         with gr.Tab("매트릭스 모드"):
@@ -106,7 +107,7 @@ def main() -> None:
         gr.Markdown(
             "---\n"
             "출처: 모델 카드 + Open Ko-LLM Leaderboard + 공식 발표값. "
-            "데이터는 `data/seed/`에 시드, 매주 자동 갱신. "
+            "데이터는 매주 자동 갱신. "
             "[GitHub](https://github.com/frentis-ai-lab/llm-gpu-fit) · "
             "[Spec](https://github.com/frentis-ai-lab/llm-gpu-fit/blob/main/docs/spec.md)"
         )

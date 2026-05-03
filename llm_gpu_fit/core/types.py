@@ -63,6 +63,7 @@ class UserInput:
     concurrency: int = 1
     context_target: int = 8192
     quantization_preference: Quantization | None = None
+    framework: Framework | None = None  # None=GPU 종류로 자동 선택
 
 
 @dataclass

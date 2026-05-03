@@ -17,6 +17,25 @@ _QUANT_PREFERENCE: list[Quantization] = [
     "q8_0", "q5_k_m", "q4_k_m",
 ]
 
+# llama.cpp / Ollama / LM Studio는 GGUF만 사용
+_GGUF_QUANTS: tuple[Quantization, ...] = ("q8_0", "q5_k_m", "q4_k_m")
+# vLLM / SGLang / TGI / TensorRT-LLM는 비-GGUF
+_GPU_QUANTS: tuple[Quantization, ...] = (
+    "bf16", "fp16", "fp8", "int8", "awq", "gptq", "int4",
+)
+
+
+def quants_for_framework(framework: Framework) -> tuple[Quantization, ...]:
+    if framework in ("llama.cpp", "mlx"):
+        return _GGUF_QUANTS + ("bf16",)  # MLX는 BF16도 가능
+    return _GPU_QUANTS
+
+
+def default_framework_for_gpu(form_factor: str) -> Framework:
+    if form_factor == "apple_silicon":
+        return "mlx"
+    return "vllm"
+
 
 def is_capability_satisfied(required: list[str], model_caps: list[str],
                             model_modalities: list[str] | None = None) -> bool:
@@ -29,13 +48,19 @@ def pick_quantization(model: Model, gpus: list[GPU], gpu_count: int,
                       framework: Framework, context_target: int,
                       concurrency: int,
                       preference: Quantization | None = None) -> Quantization | None:
-    if preference:
+    """프레임워크가 지원하는 양자화 중 최선을 선택. preference가 framework와
+    호환되지 않으면 무시하고 자동 fallback."""
+    allowed = quants_for_framework(framework)
+    if preference and preference in allowed:
         fit = compute_memory_fit(model, gpus, gpu_count, preference, framework,
                                  context_target, concurrency)
         if fit.fits:
             return preference
 
+    # framework가 지원하는 양자화만 선호도 순서대로 시도
     for quant in _QUANT_PREFERENCE:
+        if quant not in allowed:
+            continue
         fit = compute_memory_fit(model, gpus, gpu_count, quant, framework,
                                  context_target, concurrency)
         if fit.fits:
@@ -108,7 +133,7 @@ def recommend(ui: UserInput, gpus_by_id: dict[str, GPU],
 
     use_case = use_cases_by_id[ui.use_case]
     gpu = gpus_by_id[ui.gpu_id]
-    framework: Framework = "mlx" if gpu.form_factor == "apple_silicon" else "vllm"
+    framework: Framework = ui.framework or default_framework_for_gpu(gpu.form_factor)
 
     candidates: list[Recommendation] = []
     for model in load_models():
@@ -176,6 +201,7 @@ def suggest_smaller_alternative(top_rec: Recommendation, ui: UserInput,
         onprem_required=ui.onprem_required,
         tool_calling_required=ui.tool_calling_required,
         concurrency=ui.concurrency, context_target=ui.context_target,
+        framework=ui.framework,
     )
     alts = recommend(alt_ui, gpus_by_id, use_cases_by_id, top_k=1)
     if not alts:

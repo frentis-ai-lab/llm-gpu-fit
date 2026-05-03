@@ -55,18 +55,23 @@ def build_matrix(use_case_id: str, gpu_id: str, gpu_count: int,
 
 
 def build_matrix_panel() -> dict:
-    from llm_gpu_fit.ui.wizard import gpu_choices, use_case_choices
+    from llm_gpu_fit.ui.wizard import gpu_model_choices, use_case_choices
     gr.Markdown("### 매트릭스 모드 — 모든 후보 비교")
     m_use_case = gr.Dropdown(label="용도", choices=use_case_choices(),
                              value="general")
-    m_gpu = gr.Dropdown(label="GPU 구성", choices=gpu_choices(),
-                        value="h100_80::1")
+    with gr.Row():
+        m_gpu = gr.Dropdown(label="GPU 모델", choices=gpu_model_choices(),
+                            value="h100_80")
+        m_count = gr.Dropdown(label="GPU 수",
+                              choices=[("1장", 1), ("2장", 2),
+                                       ("4장", 4), ("8장", 8)],
+                              value=1)
     m_btn = gr.Button("매트릭스 만들기", variant="secondary")
     m_table = gr.Dataframe(label="후보 모델 매트릭스", interactive=False, wrap=True)
 
-    def _refresh(use_case, gpu_sel):
-        gpu_id, n = gpu_sel.split("::")
+    def _refresh(use_case, gpu_id, n):
         return build_matrix(use_case, gpu_id, int(n))
 
-    m_btn.click(_refresh, inputs=[m_use_case, m_gpu], outputs=m_table)
-    return {"use_case": m_use_case, "gpu": m_gpu, "btn": m_btn, "table": m_table}
+    m_btn.click(_refresh, inputs=[m_use_case, m_gpu, m_count], outputs=m_table)
+    return {"use_case": m_use_case, "gpu": m_gpu, "count": m_count,
+            "btn": m_btn, "table": m_table}
