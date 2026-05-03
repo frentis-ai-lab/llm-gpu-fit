@@ -1,0 +1,144 @@
+gpus:
+  # NVIDIA Datacenter
+  - id: a100_40
+    name: "A100 40GB"
+    vendor: nvidia
+    vram_gb: 40
+    mem_bandwidth_gbs: 1555
+    fp16_tflops: 312
+    int8_tops: 624
+    nvlink: true
+    form_factor: datacenter
+    release_year: 2020
+
+  - id: a100_80
+    name: "A100 80GB"
+    vendor: nvidia
+    vram_gb: 80
+    mem_bandwidth_gbs: 2039
+    fp16_tflops: 312
+    int8_tops: 624
+    nvlink: true
+    form_factor: datacenter
+    release_year: 2021
+
+  - id: h100_80
+    name: "H100 80GB"
+    vendor: nvidia
+    vram_gb: 80
+    mem_bandwidth_gbs: 3350
+    fp16_tflops: 989
+    int8_tops: 1979
+    nvlink: true
+    form_factor: datacenter
+    release_year: 2022
+
+  - id: h200
+    name: "H200 141GB"
+    vendor: nvidia
+    vram_gb: 141
+    mem_bandwidth_gbs: 4800
+    fp16_tflops: 989
+    int8_tops: 1979
+    nvlink: true
+    form_factor: datacenter
+    release_year: 2024
+
+  - id: b200
+    name: "B200 192GB"
+    vendor: nvidia
+    vram_gb: 192
+    mem_bandwidth_gbs: 8000
+    fp16_tflops: 2250
+    int8_tops: 4500
+    nvlink: true
+    form_factor: datacenter
+    release_year: 2025
+
+  - id: l40s
+    name: "L40S 48GB"
+    vendor: nvidia
+    vram_gb: 48
+    mem_bandwidth_gbs: 864
+    fp16_tflops: 362
+    int8_tops: 733
+    nvlink: false
+    form_factor: datacenter
+    release_year: 2023
+
+  - id: rtx6000_ada
+    name: "RTX 6000 Ada 48GB"
+    vendor: nvidia
+    vram_gb: 48
+    mem_bandwidth_gbs: 960
+    fp16_tflops: 364
+    int8_tops: 728
+    nvlink: false
+    form_factor: workstation
+    release_year: 2022
+
+  - id: rtx3090
+    name: "RTX 3090 24GB"
+    vendor: nvidia
+    vram_gb: 24
+    mem_bandwidth_gbs: 936
+    fp16_tflops: 71
+    int8_tops: 568
+    nvlink: false
+    form_factor: consumer
+    release_year: 2020
+
+  - id: rtx4090
+    name: "RTX 4090 24GB"
+    vendor: nvidia
+    vram_gb: 24
+    mem_bandwidth_gbs: 1008
+    fp16_tflops: 82.6
+    int8_tops: 660
+    nvlink: false
+    form_factor: consumer
+    release_year: 2022
+
+  - id: rtx5090
+    name: "RTX 5090 32GB"
+    vendor: nvidia
+    vram_gb: 32
+    mem_bandwidth_gbs: 1792
+    fp16_tflops: 105
+    int8_tops: 838
+    nvlink: false
+    form_factor: consumer
+    release_year: 2025
+
+  - id: m3_max_64
+    name: "M3 Max 64GB (Unified)"
+    vendor: apple
+    vram_gb: 48
+    mem_bandwidth_gbs: 400
+    fp16_tflops: 28
+    int8_tops: 56
+    nvlink: false
+    form_factor: apple_silicon
+    release_year: 2023
+
+  - id: m4_max_128
+    name: "M4 Max 128GB (Unified)"
+    vendor: apple
+    vram_gb: 96
+    mem_bandwidth_gbs: 546
+    fp16_tflops: 34
+    int8_tops: 68
+    nvlink: false
+    form_factor: apple_silicon
+    release_year: 2024
+
+  - id: m3_ultra_192
+    name: "M3 Ultra 192GB (Unified)"
+    vendor: apple
+    vram_gb: 144
+    mem_bandwidth_gbs: 800
+    fp16_tflops: 56
+    int8_tops: 112
+    nvlink: false
+    form_factor: apple_silicon
+    release_year: 2025
