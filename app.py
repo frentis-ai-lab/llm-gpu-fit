@@ -1,6 +1,5 @@
 """LLM GPU Fit — HuggingFace Space 진입점."""
 import os
-from pathlib import Path
 
 import gradio as gr
 import yaml
@@ -80,7 +79,7 @@ def main() -> None:
                     with gr.Column(scale=4):
                         gr.Markdown(f"**{preset['title']}** — {preset['description']}")
                     with gr.Column(scale=1):
-                        btn = gr.Button(f"적용하고 추천", size="sm")
+                        btn = gr.Button("적용하고 추천", size="sm")
                         gpu_sel = f"{preset['gpu_id']}::{preset['gpu_count']}"
 
                         def _apply(p_use=preset["use_case"], p_gpu=gpu_sel,
