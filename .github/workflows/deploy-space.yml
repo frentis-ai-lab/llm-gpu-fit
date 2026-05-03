@@ -1,0 +1,28 @@
+name: Deploy to HF Space
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Push to HF Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_USERNAME: ${{ secrets.HF_USERNAME }}
+          HF_SPACE_REPO: ${{ secrets.HF_SPACE_REPO }}
+        run: |
+          if [ -z "$HF_TOKEN" ] || [ -z "$HF_SPACE_REPO" ]; then
+            echo "HF_TOKEN or HF_SPACE_REPO not set — skipping deploy"
+            exit 0
+          fi
+          git config user.email "deploy@frentis.ai"
+          git config user.name "frentis-deploy"
+          git remote add hf "https://${HF_USERNAME:-deploy}:${HF_TOKEN}@huggingface.co/spaces/${HF_SPACE_REPO}"
+          git push hf main --force
