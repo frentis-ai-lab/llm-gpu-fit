@@ -1,0 +1,78 @@
+presets:
+  - id: h100_coding
+    title: "H100 1장으로 코딩 어시스턴트"
+    description: "사내 코드 어시스턴트 PoC, 상용 라이선스 필요"
+    use_case: coding
+    gpu_id: h100_80
+    gpu_count: 1
+    commercial_required: true
+    korean_priority: false
+    onprem_required: false
+    tool_calling_required: true
+    context_target: 32768
+    concurrency: 4
+
+  - id: rtx4090x4_korean_rag
+    title: "RTX 4090 4장으로 한국어 RAG"
+    description: "온프레 한국어 챗봇, 긴 문맥 RAG 운용"
+    use_case: long_context
+    gpu_id: rtx4090
+    gpu_count: 4
+    commercial_required: true
+    korean_priority: true
+    onprem_required: true
+    tool_calling_required: false
+    context_target: 32768
+    concurrency: 8
+
+  - id: m4_max_local
+    title: "맥북 M4 Max로 로컬 코딩"
+    description: "1인 개발자, 노트북에서 모델 직접 실행"
+    use_case: coding
+    gpu_id: m4_max_128
+    gpu_count: 1
+    commercial_required: false
+    korean_priority: false
+    onprem_required: true
+    tool_calling_required: true
+    context_target: 16384
+    concurrency: 1
+
+  - id: a100_80_korean_general
+    title: "A100 80GB로 사내 한국어 챗봇"
+    description: "투이/유엔진 PoC 표준 구성"
+    use_case: korean_general
+    gpu_id: a100_80
+    gpu_count: 1
+    commercial_required: true
+    korean_priority: true
+    onprem_required: false
+    tool_calling_required: true
+    context_target: 16384
+    concurrency: 16
+
+  - id: 8xh100_reasoning
+    title: "H100 8장으로 최고급 추론 모델"
+    description: "엔터프라이즈 reasoning 워크로드, DeepSeek/GPT-OSS급"
+    use_case: reasoning
+    gpu_id: h100_80
+    gpu_count: 8
+    commercial_required: true
+    korean_priority: false
+    onprem_required: true
+    tool_calling_required: true
+    context_target: 65536
+    concurrency: 16
+
+  - id: rtx4090_personal
+    title: "RTX 4090 1장으로 개인 LLM"
+    description: "취미/실험, 양자화로 32B까지"
+    use_case: general
+    gpu_id: rtx4090
+    gpu_count: 1
+    commercial_required: false
+    korean_priority: false
+    onprem_required: true
+    tool_calling_required: false
+    context_target: 8192
+    concurrency: 1

@@ -1,0 +1,107 @@
+use_cases:
+  - id: general
+    display_name_ko: "일반 대화/지식"
+    display_name_en: "General Knowledge"
+    benchmark_weights:
+      mmlu_pro: 0.30
+      gpqa: 0.20
+      mt_bench: 0.20
+      ifeval: 0.15
+      arena_elo: 0.15
+    required_capabilities: ["text"]
+    preferred_capabilities: []
+
+  - id: reasoning
+    display_name_ko: "수학/추론"
+    display_name_en: "Math & Reasoning"
+    benchmark_weights:
+      math: 0.30
+      gsm8k: 0.20
+      aime: 0.20
+      gpqa_diamond: 0.30
+    required_capabilities: ["text"]
+    preferred_capabilities: ["reasoning_mode"]
+
+  - id: coding
+    display_name_ko: "코딩"
+    display_name_en: "Coding"
+    benchmark_weights:
+      livecodebench: 0.35
+      humaneval: 0.20
+      bigcodebench: 0.20
+      swe_bench_verified: 0.25
+    required_capabilities: ["text"]
+    preferred_capabilities: ["tool_use", "json_mode"]
+
+  - id: korean_general
+    display_name_ko: "한국어 일반"
+    display_name_en: "Korean General"
+    benchmark_weights:
+      kmmlu: 0.30
+      hae_rae: 0.25
+      logickor: 0.25
+      open_ko_llm_avg: 0.20
+    required_capabilities: ["text"]
+    preferred_capabilities: ["ko_native"]
+
+  - id: korean_reasoning
+    display_name_ko: "한국어 추론"
+    display_name_en: "Korean Reasoning"
+    benchmark_weights:
+      logickor_reasoning: 0.50
+      ko_ifeval: 0.30
+      kmmlu: 0.20
+    required_capabilities: ["text"]
+    preferred_capabilities: ["ko_native", "reasoning_mode"]
+
+  - id: vision_ocr
+    display_name_ko: "OCR/문서이해"
+    display_name_en: "OCR / Document Understanding"
+    benchmark_weights:
+      ocr_bench: 0.35
+      doc_vqa: 0.25
+      chart_qa: 0.20
+      ai2d: 0.20
+    required_capabilities: ["vision"]
+    preferred_capabilities: []
+
+  - id: vision_general
+    display_name_ko: "비전 일반"
+    display_name_en: "Vision General"
+    benchmark_weights:
+      mmmu: 0.35
+      mmmu_pro: 0.25
+      mathvista: 0.25
+      realworldqa: 0.15
+    required_capabilities: ["vision"]
+    preferred_capabilities: []
+
+  - id: agent_tool
+    display_name_ko: "Agent / Tool 사용"
+    display_name_en: "Agent / Tool Use"
+    benchmark_weights:
+      bfcl_v3: 0.40
+      tau_bench: 0.25
+      toolbench: 0.20
+      ifeval: 0.15
+    required_capabilities: ["text", "tool_use"]
+    preferred_capabilities: ["json_mode"]
+
+  - id: long_context
+    display_name_ko: "긴 문맥/RAG"
+    display_name_en: "Long Context / RAG"
+    benchmark_weights:
+      ruler: 0.50
+      longbench_v2: 0.30
+      niah: 0.20
+    required_capabilities: ["text"]
+    preferred_capabilities: []
+
+  - id: instruction_following
+    display_name_ko: "지시 이행"
+    display_name_en: "Instruction Following"
+    benchmark_weights:
+      ifeval: 0.60
+      mt_bench: 0.40
+    required_capabilities: ["text"]
+    preferred_capabilities: []
