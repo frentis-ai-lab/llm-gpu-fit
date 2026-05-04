@@ -12,7 +12,8 @@ from llm_gpu_fit.core.usecases import load_use_cases
 from llm_gpu_fit.ui.catalog import build_catalog_panel, build_catalog_df
 from llm_gpu_fit.ui.matrix import build_matrix_panel
 from llm_gpu_fit.ui.results import (
-    render_alternative_section, render_plain_text, render_results,
+    render_alternative_section, render_plain_text,
+    render_recommendation_card, render_results,
 )
 from llm_gpu_fit.ui.wizard import build_wizard
 
@@ -35,12 +36,17 @@ _GPUS_BY_ID = {g.id: g for g in load_gpus()}
 _USE_CASES_BY_ID = {u.id: u for u in load_use_cases()}
 
 
+_NO_REC_MD = ("### 😅 추천할 모델이 없습니다\n\n"
+              "이 GPU 구성에 들어가는 모델이 없거나 모든 제약을 만족하는 모델이 없습니다. "
+              "GPU 수를 늘리거나 제약 체크를 줄여보세요.")
+
+
 def _on_submit(mode, summary_mode, use_case, gpu_model, gpu_count,
                commercial, korean, onprem, tool,
                context, concurrency, quant_pref, framework):
-    # 간단 모드는 양자화·프레임워크 자동
+    # 간단 모드: 프레임워크는 자동(GPU 종류 기반), 양자화는 사용자 선호 유지
+    # (양자화 dropdown 기본값 AWQ를 그대로 적용)
     if mode == "simple":
-        quant_pref = ""
         framework = ""
     ui = UserInput(
         use_case=use_case, gpu_id=gpu_model, gpu_count=int(gpu_count),
@@ -52,24 +58,40 @@ def _on_submit(mode, summary_mode, use_case, gpu_model, gpu_count,
     )
     recs = recommend(ui, _GPUS_BY_ID, _USE_CASES_BY_ID, top_k=3)
     gpu = _GPUS_BY_ID.get(gpu_model)
-    main_md = render_results(recs, gpu=gpu, gpu_count=int(gpu_count),
-                             summary_mode=summary_mode or "engineer")
+    sm = summary_mode or "engineer"
+
+    # 3개 순위별 마크다운
+    cards = ["", "", ""]
+    for i, r in enumerate(recs[:3]):
+        cards[i] = render_recommendation_card(r, i + 1, gpu=gpu,
+                                              gpu_count=int(gpu_count),
+                                              summary_mode=sm)
+
+    # 빈 카드 placeholder
+    for i in range(len(recs), 3):
+        cards[i] = "*추천 후보 부족*" if recs else _NO_REC_MD if i == 0 else ""
+
+    # 1장 대안
+    alt_md = ""
     if recs:
         alt = suggest_smaller_alternative(recs[0], ui, _GPUS_BY_ID, _USE_CASES_BY_ID)
-        main_md += render_alternative_section(recs[0], alt)
+        alt_md = render_alternative_section(recs[0], alt)
 
-    # Slack/이메일용 평문
+    # Slack/이메일 평문
     plain = render_plain_text(recs)
+
     # 마크다운 다운로드
     md_path = ""
     if recs:
+        full_md = render_results(recs, gpu=gpu, gpu_count=int(gpu_count),
+                                 summary_mode=sm) + alt_md
         tmp = tempfile.NamedTemporaryFile(
             mode="w", suffix=".md", delete=False, encoding="utf-8")
-        tmp.write(main_md)
+        tmp.write(full_md)
         tmp.close()
         md_path = tmp.name
 
-    return main_md, plain, md_path
+    return cards[0], cards[1], cards[2], alt_md, plain, md_path
 
 
 def _load_presets() -> list[dict]:
@@ -87,6 +109,22 @@ def _make_catalog_csv() -> str:
     return tmp.name
 
 
+_CSS = """
+.rec-card {
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px;
+  background: var(--block-background-fill, #fafafa);
+  height: 100%;
+  min-height: 350px;
+}
+.rec-gold { border-color: #f5b400; box-shadow: 0 2px 8px rgba(245,180,0,0.15); }
+.rec-silver { border-color: #94a3b8; box-shadow: 0 2px 6px rgba(148,163,184,0.12); }
+.rec-bronze { border-color: #b87333; box-shadow: 0 2px 6px rgba(184,115,51,0.12); }
+.rec-card h3 { margin-top: 0; }
+"""
+
+
 def main() -> None:
     with gr.Blocks(title="LLM GPU Fit") as demo:
         gr.Markdown(
@@ -97,7 +135,18 @@ def main() -> None:
 
         with gr.Tab("추천 모드"):
             refs = build_wizard()
-            results = gr.Markdown()
+
+            gr.Markdown("### 📊 추천 결과")
+            with gr.Row(equal_height=False):
+                with gr.Column(min_width=300):
+                    card1 = gr.Markdown(elem_classes=["rec-card", "rec-gold"])
+                with gr.Column(min_width=300):
+                    card2 = gr.Markdown(elem_classes=["rec-card", "rec-silver"])
+                with gr.Column(min_width=300):
+                    card3 = gr.Markdown(elem_classes=["rec-card", "rec-bronze"])
+
+            alt_md_out = gr.Markdown()
+
             with gr.Accordion("📋 결과 공유 / 다운로드", open=False):
                 plain_box = gr.Textbox(
                     label="Slack·이메일에 붙여넣을 평문",
@@ -113,7 +162,7 @@ def main() -> None:
                         refs["commercial"], refs["korean"], refs["onprem"], refs["tool"],
                         refs["context"], refs["concurrency"],
                         refs["quant_pref"], refs["framework"]],
-                outputs=[results, plain_box, md_file],
+                outputs=[card1, card2, card3, alt_md_out, plain_box, md_file],
             )
 
             gr.Markdown("---\n### 자주 묻는 시나리오\n버튼 한 번으로 양식이 채워지고 추천이 실행됩니다.")
@@ -133,20 +182,21 @@ def main() -> None:
                                    p_tl=preset["tool_calling_required"],
                                    p_ctx=preset["context_target"],
                                    p_cc=preset["concurrency"]):
-                            md, plain, md_path = _on_submit(
+                            c1, c2, c3, alt, plain, md_path = _on_submit(
                                 "simple", "engineer",
                                 p_use, p_gpu, p_count, p_com, p_ko,
-                                p_op, p_tl, p_ctx, p_cc, "", "")
+                                p_op, p_tl, p_ctx, p_cc, "awq", "")
                             return ("simple", "engineer",
                                     p_use, p_gpu, p_count, p_com, p_ko, p_op, p_tl,
-                                    p_ctx, p_cc, "", "", md, plain, md_path)
+                                    p_ctx, p_cc, "awq", "",
+                                    c1, c2, c3, alt, plain, md_path)
                         btn.click(_apply, inputs=[], outputs=[
                             refs["mode"], refs["summary_mode"],
                             refs["use_case"], refs["gpu_model"], refs["gpu_count"],
                             refs["commercial"], refs["korean"], refs["onprem"], refs["tool"],
                             refs["context"], refs["concurrency"],
                             refs["quant_pref"], refs["framework"],
-                            results, plain_box, md_file,
+                            card1, card2, card3, alt_md_out, plain_box, md_file,
                         ])
 
         with gr.Tab("매트릭스 모드"):
@@ -201,7 +251,8 @@ print(result[1])  # 평문 추천 결과
             "[Spec](https://github.com/frentis-ai-lab/llm-gpu-fit/blob/main/docs/spec.md)"
         )
 
-    demo.launch(server_name="0.0.0.0", server_port=7860, theme=gr.themes.Soft())
+    demo.launch(server_name="0.0.0.0", server_port=7860,
+                theme=gr.themes.Soft(), css=_CSS)
 
 
 if __name__ == "__main__":

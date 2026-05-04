@@ -31,11 +31,15 @@ def render_recommendation_card(rec: Recommendation, rank: int,
     cost_section = _cost_section(gpu, gpu_count) if gpu else ""
     company = rec.model.company_or_family
 
+    quant_note = _quant_reason(rec)
+
     return f"""
 ### {medal} {rank}순위: {rec.model.display_name}
 *{company} · 출시 {rec.model.release_date or "—"}*
 
 **구성**: {rec.quantization.upper()} · {rec.framework} · 컨텍스트 {rec.memory.max_context_supported:,} 토큰까지
+
+{quant_note}
 
 **메모리**: {fit_emoji} {rec.memory.total_used_gb:.1f}GB / {rec.memory.total_available_gb:.1f}GB 사용
 (weights {rec.memory.weights_gb:.1f}GB · KV {rec.memory.kv_cache_gb:.1f}GB · framework {rec.memory.framework_overhead_gb:.1f}GB)
@@ -50,9 +54,30 @@ def render_recommendation_card(rec: Recommendation, rank: int,
 
 #### ⚠ 알아둘 것
 {tradeoffs_md}
-
----
 """
+
+
+_QUANT_NOTES: dict[str, str] = {
+    "bf16": "🔍 **BF16 선택 이유**: GPU에 양자화 없이 들어감 → 품질 손실 0%, 가장 안전",
+    "fp16": "🔍 **FP16 선택 이유**: 양자화 없이 들어감, 품질 손실 0%",
+    "fp8": "🔍 **FP8 선택 이유**: H100/H200 네이티브 지원, 품질 손실 1-2% (BF16 대비 메모리 절반)",
+    "int8": "🔍 **INT8 선택 이유**: BF16 안 들어감 → 품질 손실 2-3%로 메모리 절반",
+    "awq": "🔍 **AWQ 선택 이유**: INT4 기반 권장 양자화, 메모리 4배 절감 / 품질 손실 5-10%",
+    "gptq": "🔍 **GPTQ 선택 이유**: AWQ 대안 INT4, 메모리 4배 절감 / 품질 손실 5-10%",
+    "int4": "🔍 **INT4 선택 이유**: 메모리 4배 절감 / 품질 손실 5-10%",
+    "q4_k_m": "🔍 **Q4_K_M (GGUF) 선택 이유**: Ollama/llama.cpp INT4 표준",
+    "q5_k_m": "🔍 **Q5_K_M (GGUF) 선택 이유**: Q4보다 약간 큰 GGUF, 품질 1-2% ↑",
+    "q8_0": "🔍 **Q8_0 (GGUF) 선택 이유**: Ollama/llama.cpp INT8, 품질 손실 거의 없음",
+}
+
+
+def _quant_reason(rec: Recommendation) -> str:
+    """선택된 양자화의 사유를 한 줄로 설명."""
+    q = rec.quantization
+    base = _QUANT_NOTES.get(q, "")
+    # 사용자가 INT4를 선택했지만 더 좋은 것을 자동 선택한 경우 안내
+    weights_gb = rec.memory.weights_gb
+    return f"{base}\n메모리 점유 = weights {weights_gb:.1f}GB"
 
 
 def _render_executive(rec: Recommendation, rank: int, medal: str,
