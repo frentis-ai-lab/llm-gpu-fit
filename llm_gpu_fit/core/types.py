@@ -23,9 +23,18 @@ class GPU:
     form_factor: GPUFormFactor
     release_year: int = 0
     msrp_usd: float = 0
+    cloud_hourly_usd: float = 0
 
     def total_vram(self, count: int = 1) -> float:
         return self.vram_gb * count
+
+    def monthly_cloud_cost(self, count: int = 1) -> float:
+        """24/7 운용 가정 — 클라우드 시간당 단가 × 730 × count."""
+        return self.cloud_hourly_usd * 730 * count
+
+    def amortized_monthly_owned(self, count: int = 1, years: int = 3) -> float:
+        """자체 보유 시 N년 분할 가정 — MSRP / (years * 12) × count."""
+        return self.msrp_usd / (years * 12) * count
 
 
 @dataclass(frozen=True)

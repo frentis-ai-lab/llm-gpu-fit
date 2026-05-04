@@ -104,7 +104,22 @@ def gpu_summary_text(gpu_id: str, count: int) -> str:
     if count > 1:
         nvlink_note = (" · NVLink ✓ (분산 통신 빠름)" if g.nvlink
                        else " · ⚠ NVLink 없음 → PCIe 통신, 큰 모델일수록 페널티")
-    return f"💾 총 VRAM **{total:.0f}GB**{eff_note}{nvlink_note}"
+
+    # 비용 표시
+    cost_line = ""
+    if g.cloud_hourly_usd > 0 or g.msrp_usd > 0:
+        parts = []
+        if g.cloud_hourly_usd > 0:
+            monthly_cloud = g.cloud_hourly_usd * 730 * count
+            parts.append(f"클라우드 **${monthly_cloud:,.0f}/월**")
+        if g.msrp_usd > 0:
+            owned_monthly = g.msrp_usd * count / 36
+            total_msrp = g.msrp_usd * count
+            parts.append(
+                f"구매 ${total_msrp:,.0f} (월 분할 ${owned_monthly:,.0f})"
+            )
+        cost_line = "\n💰 " + " · ".join(parts)
+    return f"💾 총 VRAM **{total:.0f}GB**{eff_note}{nvlink_note}{cost_line}"
 
 
 def use_case_guide_text(use_case_id: str) -> str:
@@ -114,8 +129,32 @@ def use_case_guide_text(use_case_id: str) -> str:
     return f"💡 **{g['desc']}**"
 
 
+_GLOSSARY = """
+### 🤔 처음이세요? 용어 빠른 가이드
+
+- **GPU**: 모델을 돌릴 그래픽카드. **H100/A100**은 데이터센터, **RTX 4090/5090**은 컨슈머, **M4 Max**는 맥북·맥스튜디오
+- **컨텍스트 길이**: 한 번에 모델에 넣을 수 있는 입출력 글자 수 (한국어 1글자 ≈ 1.5토큰)
+- **양자화**: 모델을 작게 압축하는 기술. **INT4(AWQ)**가 표준 — 메모리 4배 ↓, 품질 5-10% ↓
+- **프레임워크**: 모델을 실제로 돌리는 소프트웨어. 프로덕션은 **vLLM**, 개인 노트북은 **Ollama**
+- **MoE**: Mixture of Experts. 큰 모델이지만 한 번에 일부만 활성화 (예: DeepSeek V3 = 671B 중 37B만 활성)
+- **Tool calling**: 모델이 외부 도구·API를 호출할 수 있는 기능 (에이전트 만들 때 필수)
+- **상용 라이선스**: 회사가 제품·서비스로 판매할 때 별도 비용 없이 사용 가능 여부
+"""
+
+
 def build_wizard() -> dict:
+    with gr.Accordion("🤔 처음이세요? 용어 빠른 가이드", open=False):
+        gr.Markdown(_GLOSSARY)
+
     gr.Markdown("## 무슨 모델을 쓰면 되나요?\n세 가지만 고르면 추천이 나옵니다.")
+
+    mode = gr.Radio(
+        label="입력 모드",
+        choices=[("간단 (자동 설정)", "simple"),
+                 ("상세 (양자화·프레임워크 직접 선택)", "advanced")],
+        value="simple",
+        info="간단 모드는 양자화·프레임워크를 자동으로 골라줍니다. 처음이시면 간단 권장.",
+    )
 
     # === ① 용도 ===
     use_case = gr.Dropdown(
@@ -155,7 +194,7 @@ def build_wizard() -> dict:
                            info="Function calling으로 외부 도구 호출")
 
     # === 고급 옵션 ===
-    with gr.Accordion("컨텍스트·동시 사용자 (고급)", open=False):
+    with gr.Accordion("컨텍스트·동시 사용자 (상세 모드 전용)", open=False) as adv_accordion:
         context = gr.Slider(
             label="목표 컨텍스트 길이 (토큰)",
             minimum=2048, maximum=131072, value=8192, step=2048,
@@ -209,7 +248,19 @@ def build_wizard() -> dict:
             info="대부분 INT4 계열(AWQ/GPTQ/Q4_K_M)을 씁니다. 메모리 절감 4배, 품질 손실 5-10%.",
         )
 
+    summary_mode = gr.Radio(
+        label="결과 표시 모드",
+        choices=[("🔧 엔지니어용 (상세 점수·메모리)", "engineer"),
+                 ("💼 임원용 (비즈니스 언어·비용)", "executive")],
+        value="engineer",
+    )
+
     submit = gr.Button("추천 받기 →", variant="primary", size="lg")
+
+    # mode 변경 시 고급 옵션 자동 펼침/접힘
+    def _on_mode_change(m):
+        return gr.update(open=(m == "advanced"))
+    mode.change(_on_mode_change, inputs=[mode], outputs=[adv_accordion])
 
     # === 콜백: 용도 변경 시 가이드와 컨텍스트·동시성 자동 갱신 ===
     def _on_use_case_change(uc_id):
@@ -249,6 +300,7 @@ def build_wizard() -> dict:
     )
 
     return {
+        "mode": mode, "summary_mode": summary_mode,
         "use_case": use_case,
         "gpu_model": gpu_model,
         "gpu_count": gpu_count,
