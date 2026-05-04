@@ -69,11 +69,50 @@ def pick_quantization(model: Model, gpus: list[GPU], gpu_count: int,
 
 
 _KOREAN_WEIGHT = {
-    "native": 1.0,        # 한국어 전용 학습
-    "multilingual": 0.6,  # 다국어 모델 + 한국어 명시 지원
-    "partial": 0.3,       # 다국어 100+ 모델
+    "native": 1.0,
+    "multilingual": 0.6,
+    "partial": 0.3,
     "none": 0.0,
 }
+
+
+def _recency_factor(release_date: str, today_iso: str | None = None) -> float:
+    """release_date(YYYY-MM-DD) → 곱셈 인자 (0.85 ~ 1.15).
+
+    < 6개월: 1.15 (핫)
+    6-12개월: 1.08
+    12-18개월: 1.0 (기본)
+    18-24개월: 0.92
+    > 24개월: 0.85 (구버전)
+    """
+    if not release_date:
+        return 1.0
+    from datetime import date
+    try:
+        # release_date는 YYYY-MM 또는 YYYY-MM-DD
+        parts = release_date.split("-")
+        y = int(parts[0])
+        m = int(parts[1]) if len(parts) > 1 else 1
+        d = int(parts[2]) if len(parts) > 2 else 1
+        rd = date(y, m, d)
+    except Exception:
+        return 1.0
+    today = date.fromisoformat(today_iso) if today_iso else date.today()
+    months = (today - rd).days / 30.44
+    if months < 6:
+        return 1.15
+    if months < 12:
+        return 1.08
+    if months < 18:
+        return 1.0
+    if months < 24:
+        return 0.92
+    return 0.85
+
+
+def _popularity_factor(tier: int) -> float:
+    """popularity_tier 1-5 → 곱셈 인자 (0.85 ~ 1.20)."""
+    return {5: 1.20, 4: 1.10, 3: 1.0, 2: 0.92, 1: 0.85}.get(tier, 1.0)
 
 
 def _constraint_score(ui: UserInput, model: Model) -> float:
@@ -179,6 +218,9 @@ def recommend(ui: UserInput, gpus_by_id: dict[str, GPU],
         raw = 0.65 * quality + 0.35 * constraint * 100
         raw *= (1 - topo.nvlink_penalty)
         raw *= (1 + pref_bonus)
+        # 최근성 + 인기도 가중 (신모델·핫 모델 우대)
+        raw *= _recency_factor(model.release_date)
+        raw *= _popularity_factor(model.popularity_tier)
         if fit.fit_status == "tight":
             raw *= 0.7
 

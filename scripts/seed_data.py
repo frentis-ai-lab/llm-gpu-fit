@@ -1734,6 +1734,78 @@ def _series_for(model: dict) -> str:
     return model["family"].title()
 
 
+# 모델별 인기도 티어 (1-5). 기본 3.
+# 5 = 2025-2026 핫 트렌드 (실제로 많이 쓰이는 모델)
+# 4 = 인기 표준
+# 2 = 한물 갔지만 여전히 사용
+# 1 = 레거시/니치
+_POPULARITY_BY_ID = {
+    # === Tier 5: 2025-2026 핫 ===
+    "qwen3_32b": 5, "qwen3_coder_30b_a3b": 5, "qwen3_coder_480b_a35b": 5,
+    "qwen3_vl_32b": 5, "qwen3_vl_30b_a3b": 5, "qwen3_omni_30b_a3b": 5,
+    "qwen3_8b": 5, "qwen3_14b": 5, "qwen3_4b": 5,
+    "qwen3_vl_8b": 5, "qwen3_vl_4b": 5,
+    "deepseek_v3_2_exp": 5, "deepseek_v3_1_terminus": 5,
+    "gpt_oss_120b": 5, "gpt_oss_20b": 5,
+    "kimi_k2": 5, "minimax_m1_80k": 5,
+    "kanana_2_30b_a3b": 5, "exaone_4_32b": 5,
+    "qwq_32b": 5, "magistral_small_24b": 5, "devstral_small_24b": 5,
+    "r1_distill_llama_70b": 5, "r1_distill_qwen_32b": 5,
+    "glm_4_5_air_106b": 5,
+    "hunyuan_a13b": 5,
+
+    # === Tier 4: 인기 표준 ===
+    "gemma_3_27b": 4, "gemma_3_12b": 4, "gemma_3_4b": 4,
+    "mistral_small_3": 4, "phi_4": 4, "phi_4_multimodal": 4,
+    "llama_4_scout_17b": 4,
+    "exaone_4_1_2b": 4, "exaone_deep_32b": 4, "exaone_deep_7_8b": 4,
+    "ax_4_72b": 4, "ax_4_light_7b": 4,
+    "hyperclovax_seed_think_14b": 4,
+    "phi_4_mini": 4, "phi_4_mini_reasoning": 4,
+    "smollm3_3b": 4, "internlm3_8b": 4,
+    "internvl3_78b": 4, "internvl3_38b": 4,
+    "minicpm_v_4_5": 4, "minicpm_4_8b": 4,
+    "command_a_111b": 4, "aya_expanse_32b": 4, "aya_vision_32b": 4,
+    "kanana_1_5_8b": 4, "tri_21b": 4,
+    "r1_distill_qwen_14b": 4,
+    "granite_4_1_8b": 4,
+
+    # === Tier 3: 기본 (명시 안 한 모델) ===
+    "qwen2_5_vl_32b": 3,
+    "exaone_3_5_32b": 3, "exaone_3_5_7_8b": 3,
+    "exaone_deep_2_4b": 3,
+    "ax_4_vl_light_7b": 3,
+    "hyperclovax_seed_text_1_5b": 3, "hyperclovax_seed_vision_3b": 3,
+    "kanana_1_5_v_3b": 3, "kanana_nano_2_1b": 3,
+    "trillion_7b": 3,
+    "llama_3_2_3b": 3, "llama_3_2_1b": 3, "llama_3_1_nemotron_70b": 3,
+    "yi_coder_9b": 3, "reka_flash_3": 3,
+    "aya_expanse_8b": 3, "aya_vision_8b": 3,
+    "falcon3_10b": 3, "falcon3_7b": 3,
+    "olmo2_32b": 3, "olmo2_13b": 3,
+    "gemma_3_1b": 3, "smollm2_1_7b": 3,
+    "phi_3_5_moe": 3,
+
+    # === Tier 2: 한물 갔지만 사용 ===
+    "llama_3_3_70b": 2,
+    "mixtral_8x22b": 2,
+    "yi_1_5_34b": 2, "yi_1_5_9b": 2,
+    "hunyuan_large": 2,
+    "jamba_1_5_large": 2, "jamba_1_5_mini": 2,
+    "solar_pro_22b": 2,
+    "hyperclovax_seed_text_0_5b": 2,
+
+    # === Tier 1: 레거시 ===
+    "kullm3": 1,
+    "arctic_480b": 1,
+    "gemma_3_270m": 1,
+}
+
+
+def _popularity_for(model: dict) -> int:
+    return _POPULARITY_BY_ID.get(model["id"], 3)
+
+
 _FAMILY_TO_COMPANY = {
     "llama": "Meta", "qwen": "Alibaba", "deepseek": "DeepSeek",
     "gpt-oss": "OpenAI", "exaone": "LG AI Research",
@@ -1767,7 +1839,8 @@ def main() -> None:
 
     enriched = [
         {**m, "company": _company_for(m), "series": _series_for(m),
-         "languages": list(_languages_for(m))}
+         "languages": list(_languages_for(m)),
+         "popularity_tier": _popularity_for(m)}
         for m in MODELS
     ]
     df_models = pd.DataFrame(enriched)

@@ -42,6 +42,7 @@ def _model_from_row(row: dict) -> Model:
         company=row.get("company", "") or "",
         series=row.get("series", "") or "",
         languages=tuple(row["languages"]) if "languages" in row and row["languages"] is not None and len(row["languages"]) > 0 else (),
+        popularity_tier=int(row.get("popularity_tier", 3) or 3),
     )
 
 

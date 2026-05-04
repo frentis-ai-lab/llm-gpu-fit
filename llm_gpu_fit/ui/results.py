@@ -32,10 +32,13 @@ def render_recommendation_card(rec: Recommendation, rank: int,
     company = rec.model.company_or_family
 
     quant_note = _quant_reason(rec)
+    pop_badge = {5: "🔥 핫 트렌드", 4: "⭐ 인기 표준",
+                 3: "✓ 일반", 2: "⏳ 구버전", 1: "📦 레거시"}.get(
+                    rec.model.popularity_tier, "")
 
     return f"""
 ### {medal} {rank}순위: {rec.model.display_name}
-*{company} · 출시 {rec.model.release_date or "—"}*
+*{company} · 출시 {rec.model.release_date or "—"} · {pop_badge}*
 
 **구성**: {rec.quantization.upper()} · {rec.framework} · 컨텍스트 {rec.memory.max_context_supported:,} 토큰까지
 

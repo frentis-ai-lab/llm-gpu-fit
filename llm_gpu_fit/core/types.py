@@ -57,9 +57,9 @@ class Model:
     release_date: str = ""
     company: str = ""
     series: str = ""
-    # ISO 639-1 코드 리스트. 예: ["en", "ko", "zh"].
-    # 100+ 언어 학습된 글로벌 멀티언어 모델은 ["multi-100"] 같은 표식 사용.
     languages: tuple[str, ...] = ()
+    # 인기도 1-5 (5=핫 트렌드, 3=일반, 1=레거시/니치)
+    popularity_tier: int = 3
 
     def is_moe(self) -> bool:
         return self.params_active_b < self.params_total_b

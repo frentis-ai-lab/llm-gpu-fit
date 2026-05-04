@@ -90,6 +90,11 @@ def _commercial_str(model) -> str:
     return "✓상용" if model.license_commercial_ok else "✗비상용"
 
 
+def _popularity_badge(tier: int) -> str:
+    return {5: "🔥 핫", 4: "⭐ 인기", 3: "✓ 일반",
+            2: "⏳ 구", 1: "📦 레거시"}.get(tier, "")
+
+
 FilterMode = Literal["all", "korean", "korean_native", "korean_multilingual",
                      "vision", "audio", "moe", "commercial",
                      "non_commercial", "small", "medium", "large"]
@@ -131,6 +136,7 @@ def build_catalog_df(filter_mode: FilterMode = "all",
         bench = load_benchmarks_for(model.id)
         row = {
             "모델": model.display_name,
+            "인기": _popularity_badge(model.popularity_tier),
             "시리즈": model.series_or_family,
             "회사": model.company_or_family,
             "출시일": model.release_date or "—",
@@ -149,7 +155,9 @@ def build_catalog_df(filter_mode: FilterMode = "all",
         rows.append(row)
     df = pd.DataFrame(rows)
     if not df.empty:
-        df = df.sort_values(["시리즈", "파라미터"], ascending=[True, False])
+        # 인기도 → 출시일 → 파라미터 순 정렬
+        df = df.sort_values(["인기", "출시일", "파라미터"],
+                            ascending=[False, False, False])
     return df
 
 
@@ -192,8 +200,10 @@ def build_series_summary_df(filter_mode: FilterMode = "all",
         latest_date = max((v.release_date for v in variants if v.release_date),
                           default="—")
         bench_total = sum(len(load_benchmarks_for(v.id)) for v in variants)
+        max_pop = max(v.popularity_tier for v in variants)
         rows.append({
             "시리즈": series,
+            "인기": _popularity_badge(max_pop),
             "회사": rep.company_or_family,
             "변형 수": len(variants),
             "사이즈 라인업": size_str,
@@ -210,7 +220,8 @@ def build_series_summary_df(filter_mode: FilterMode = "all",
         })
     df = pd.DataFrame(rows)
     if not df.empty:
-        df = df.sort_values(["최신 출시", "변형 수"], ascending=[False, False])
+        df = df.sort_values(["인기", "최신 출시", "변형 수"],
+                            ascending=[False, False, False])
     return df
 
 
