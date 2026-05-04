@@ -39,6 +39,7 @@ def _model_from_row(row: dict) -> Model:
         license_commercial_ok=bool(row["license_commercial_ok"]),
         hf_repo=row["hf_repo"],
         release_date=row.get("release_date", ""),
+        company=row.get("company", "") or "",
     )
 
 

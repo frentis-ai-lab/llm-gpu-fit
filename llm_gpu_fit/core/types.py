@@ -46,9 +46,14 @@ class Model:
     license_commercial_ok: bool
     hf_repo: str
     release_date: str = ""
+    company: str = ""
 
     def is_moe(self) -> bool:
         return self.params_active_b < self.params_total_b
+
+    @property
+    def company_or_family(self) -> str:
+        return self.company or self.family.title()
 
 
 @dataclass

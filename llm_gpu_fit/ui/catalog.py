@@ -64,10 +64,10 @@ FilterMode = Literal["all", "korean", "vision", "audio", "moe", "commercial",
 
 
 def build_catalog_df(filter_mode: FilterMode = "all",
-                     family_filter: str = "전체") -> pd.DataFrame:
+                     company_filter: str = "전체") -> pd.DataFrame:
     rows = []
     for model in load_models():
-        if family_filter != "전체" and model.family != family_filter:
+        if company_filter != "전체" and model.company_or_family != company_filter:
             continue
         if filter_mode == "korean" and "ko_native" not in model.capabilities:
             continue
@@ -92,13 +92,13 @@ def build_catalog_df(filter_mode: FilterMode = "all",
         bench = load_benchmarks_for(model.id)
         row = {
             "모델": model.display_name,
-            "패밀리": model.family,
+            "회사": model.company_or_family,
+            "출시일": model.release_date or "—",
             "파라미터": _params_str(model.params_total_b, model.params_active_b),
             "컨텍스트": _ctx_str(model.context_window),
             "모달": _modality_badge(model.modalities),
             "기능": _capability_badge(model.capabilities),
             "라이선스": _commercial_str(model),
-            "출시": model.release_date,
             "벤치 수": len(bench),
         }
         for bid, label in _KEY_BENCHES:
@@ -107,13 +107,15 @@ def build_catalog_df(filter_mode: FilterMode = "all",
         rows.append(row)
     df = pd.DataFrame(rows)
     if not df.empty:
-        df = df.sort_values(["벤치 수", "파라미터"], ascending=[False, False])
+        # 출시일 최신순으로 정렬 (없으면 맨 뒤)
+        df = df.sort_values(["출시일", "벤치 수"], ascending=[False, False],
+                            na_position="last")
     return df
 
 
-def family_choices() -> list[str]:
-    families = sorted({m.family for m in load_models()})
-    return ["전체"] + families
+def company_choices() -> list[str]:
+    companies = sorted({m.company_or_family for m in load_models()})
+    return ["전체"] + companies
 
 
 def build_catalog_panel() -> dict:
@@ -126,7 +128,7 @@ def build_catalog_panel() -> dict:
 
     with gr.Row():
         filter_mode = gr.Dropdown(
-            label="필터",
+            label="속성 필터",
             choices=[
                 ("전체 모델", "all"),
                 ("🇰🇷 한국어 네이티브", "korean"),
@@ -141,11 +143,11 @@ def build_catalog_panel() -> dict:
             ],
             value="all",
         )
-        family = gr.Dropdown(label="패밀리", choices=family_choices(), value="전체")
+        company = gr.Dropdown(label="회사", choices=company_choices(), value="전체")
 
     table = gr.Dataframe(
         value=build_catalog_df("all", "전체"),
-        label="",
+        label="출시일 최신순 정렬",
         interactive=False, wrap=True,
         max_height=600,
     )
@@ -159,11 +161,11 @@ def build_catalog_panel() -> dict:
         "`scripts/seed_data.py`의 `BENCHMARKS`에 행 추가 PR."
     )
 
-    def _refresh(f_mode, fam):
-        return build_catalog_df(f_mode, fam)
+    def _refresh(f_mode, comp):
+        return build_catalog_df(f_mode, comp)
 
-    filter_mode.change(_refresh, inputs=[filter_mode, family], outputs=table)
-    family.change(_refresh, inputs=[filter_mode, family], outputs=table)
+    filter_mode.change(_refresh, inputs=[filter_mode, company], outputs=table)
+    company.change(_refresh, inputs=[filter_mode, company], outputs=table)
 
-    return {"filter": filter_mode, "family": family,
+    return {"filter": filter_mode, "company": company,
             "table": table, "legend": legend}

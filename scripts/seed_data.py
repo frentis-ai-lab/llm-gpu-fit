@@ -943,10 +943,32 @@ BENCHMARKS = [
 ]
 
 
+# family/id → 회사명 매핑 (시드 dict에 company 필드 자동 주입)
+_FAMILY_TO_COMPANY = {
+    "llama": "Meta", "qwen": "Alibaba", "deepseek": "DeepSeek",
+    "gpt-oss": "OpenAI", "exaone": "LG AI Research",
+    "skt": "SK Telecom", "naver": "Naver",
+    "solar": "Upstage", "kullm": "Korea Univ NLP Lab",
+    "gemma": "Google", "mistral": "Mistral AI",
+    "phi": "Microsoft", "ibm": "IBM", "glm": "Zhipu AI",
+    "minimax": "MiniMax", "moonshot": "Moonshot AI",
+}
+
+# id 단위 override (family로 구분 안 되는 경우)
+_ID_TO_COMPANY = {}
+
+
+def _company_for(model: dict) -> str:
+    if model["id"] in _ID_TO_COMPANY:
+        return _ID_TO_COMPANY[model["id"]]
+    return _FAMILY_TO_COMPANY.get(model["family"], model["family"].title())
+
+
 def main() -> None:
     SEED_DIR.mkdir(parents=True, exist_ok=True)
 
-    df_models = pd.DataFrame(MODELS)
+    enriched = [{**m, "company": _company_for(m)} for m in MODELS]
+    df_models = pd.DataFrame(enriched)
     df_models.to_parquet(SEED_DIR / "models.parquet", index=False)
 
     df_bench = pd.DataFrame(BENCHMARKS, columns=[
