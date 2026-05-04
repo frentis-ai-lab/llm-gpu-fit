@@ -23,7 +23,7 @@ def load_use_cases() -> list[UseCase]:
 
 def score_quality(benchmark_scores: dict[str, float],
                   weights: dict[str, float],
-                  min_coverage: float = 0.5) -> float:
+                  min_coverage: float = 0.3) -> float:
     """벤치마크 가중 평균. 데이터가 없는 벤치마크는 0점으로 페널티.
     coverage가 min_coverage 미만이면 0 반환 (데이터 부족 모델 배제).
     """

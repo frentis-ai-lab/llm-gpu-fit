@@ -48,9 +48,11 @@ use_cases:
     display_name_ko: "한국어 추론"
     display_name_en: "Korean Reasoning"
     benchmark_weights:
-      logickor_reasoning: 0.50
-      ko_ifeval: 0.30
+      logickor: 0.25
       kmmlu: 0.20
+      hae_rae: 0.15
+      math: 0.20
+      aime: 0.20
     required_capabilities: ["text"]
     preferred_capabilities: ["ko_native", "reasoning_mode"]
 
@@ -91,9 +93,11 @@ use_cases:
     display_name_ko: "긴 문맥/RAG"
     display_name_en: "Long Context / RAG"
     benchmark_weights:
-      ruler: 0.50
-      longbench_v2: 0.30
-      niah: 0.20
+      ruler: 0.30
+      longbench_v2: 0.20
+      niah: 0.15
+      mmlu_pro: 0.20
+      humaneval: 0.15
     required_capabilities: ["text"]
     preferred_capabilities: []
 
