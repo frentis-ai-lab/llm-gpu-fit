@@ -8,6 +8,7 @@ from llm_gpu_fit.core.data import DATA_DIR, FRESH_DIR, load_gpus
 from llm_gpu_fit.core.recommender import recommend, suggest_smaller_alternative
 from llm_gpu_fit.core.types import UserInput
 from llm_gpu_fit.core.usecases import load_use_cases
+from llm_gpu_fit.ui.catalog import build_catalog_panel
 from llm_gpu_fit.ui.matrix import build_matrix_panel
 from llm_gpu_fit.ui.results import render_alternative_section, render_results
 from llm_gpu_fit.ui.wizard import build_wizard
@@ -103,6 +104,9 @@ def main() -> None:
 
         with gr.Tab("매트릭스 모드"):
             build_matrix_panel()
+
+        with gr.Tab("모델 카탈로그"):
+            build_catalog_panel()
 
         gr.Markdown(
             "---\n"
