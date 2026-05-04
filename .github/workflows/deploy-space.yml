@@ -6,8 +6,25 @@ on:
   workflow_dispatch:
 
 jobs:
-  deploy:
+  refresh-data:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+      - name: Install deps
+        run: uv sync
+      - name: Refresh dataset (regenerate parquet from latest seed + push)
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          PUSH_TO_HF: "1"
+        run: uv run python scripts/refresh_data.py
+
+  deploy-space:
+    runs-on: ubuntu-latest
+    needs: refresh-data
     steps:
       - uses: actions/checkout@v4
         with:
@@ -26,3 +43,13 @@ jobs:
           git config user.name "frentis-deploy"
           git remote add hf "https://${HF_USERNAME:-deploy}:${HF_TOKEN}@huggingface.co/spaces/${HF_SPACE_REPO}"
           git push hf main --force
+
+      - name: Restart Space (force fresh dataset pull)
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE_REPO: ${{ secrets.HF_SPACE_REPO }}
+        run: |
+          if [ -z "$HF_TOKEN" ] || [ -z "$HF_SPACE_REPO" ]; then exit 0; fi
+          pip install --quiet huggingface_hub
+          python -c "from huggingface_hub import HfApi; HfApi(token='${HF_TOKEN}').restart_space(repo_id='${HF_SPACE_REPO}')"
+          echo "Space restart triggered"
