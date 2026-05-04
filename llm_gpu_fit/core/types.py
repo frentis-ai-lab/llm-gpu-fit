@@ -47,6 +47,7 @@ class Model:
     hf_repo: str
     release_date: str = ""
     company: str = ""
+    series: str = ""  # 예: "Qwen3", "EXAONE Deep", "Llama 3.3"
 
     def is_moe(self) -> bool:
         return self.params_active_b < self.params_total_b
@@ -54,6 +55,10 @@ class Model:
     @property
     def company_or_family(self) -> str:
         return self.company or self.family.title()
+
+    @property
+    def series_or_family(self) -> str:
+        return self.series or self.family.title()
 
 
 @dataclass

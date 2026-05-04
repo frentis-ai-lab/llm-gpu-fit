@@ -1546,6 +1546,98 @@ BENCHMARKS = [
 
 
 # family/id → 회사명 매핑 (시드 dict에 company 필드 자동 주입)
+# id 접두사 → 시리즈명 매핑. 가장 긴 매칭 우선.
+_ID_PREFIX_TO_SERIES = [
+    # Qwen
+    ("qwen3_omni", "Qwen3-Omni"),
+    ("qwen3_coder", "Qwen3-Coder"),
+    ("qwen3_vl", "Qwen3-VL"),
+    ("qwen2_5_vl", "Qwen2.5-VL"),
+    ("qwen3", "Qwen3"),
+    ("qwq", "QwQ"),
+    # Llama
+    ("llama_4", "Llama 4"),
+    ("llama_3_3", "Llama 3.3"),
+    ("llama_3_2", "Llama 3.2"),
+    ("llama_3_1_nemotron", "Llama 3.1 Nemotron"),
+    # DeepSeek
+    ("deepseek_v3_2", "DeepSeek V3.2"),
+    ("deepseek_v3_1", "DeepSeek V3.1"),
+    ("r1_distill", "DeepSeek R1 Distill"),
+    # GPT-OSS
+    ("gpt_oss", "GPT-OSS"),
+    # EXAONE
+    ("exaone_4", "EXAONE 4.0"),
+    ("exaone_deep", "EXAONE Deep"),
+    ("exaone_3_5", "EXAONE 3.5"),
+    # Korean
+    ("ax_4", "A.X 4.0"),
+    ("hyperclovax_seed", "HyperCLOVA X SEED"),
+    ("kanana", "Kakao Kanana"),
+    ("tri_", "Trillion Labs Tri"),
+    ("trillion", "Trillion Labs Trillion"),
+    ("kullm", "KULLM"),
+    ("solar_pro", "Solar Pro"),
+    # Mistral
+    ("magistral", "Magistral"),
+    ("devstral", "Devstral"),
+    ("pixtral", "Pixtral"),
+    ("mistral_small", "Mistral Small"),
+    ("mixtral", "Mixtral"),
+    # Gemma
+    ("gemma_3", "Gemma 3"),
+    # Phi
+    ("phi_4_mini", "Phi-4 mini"),
+    ("phi_4_multimodal", "Phi-4 Multimodal"),
+    ("phi_4", "Phi-4"),
+    ("phi_3_5_moe", "Phi-3.5-MoE"),
+    # Hunyuan
+    ("hunyuan", "Hunyuan"),
+    # Yi
+    ("yi_coder", "Yi-Coder"),
+    ("yi_1_5", "Yi-1.5"),
+    # InternLM
+    ("internvl3", "InternVL3"),
+    ("internlm3", "InternLM3"),
+    # MiniCPM
+    ("minicpm_v", "MiniCPM-V"),
+    ("minicpm_4", "MiniCPM 4"),
+    # SmolLM
+    ("smollm3", "SmolLM3"),
+    ("smollm2", "SmolLM2"),
+    # Falcon
+    ("falcon3", "Falcon 3"),
+    # OLMo
+    ("olmo2", "OLMo 2"),
+    # Cohere
+    ("aya_vision", "Aya Vision"),
+    ("aya_expanse", "Aya Expanse"),
+    ("command_a", "Command A"),
+    # AI21
+    ("jamba_1_5", "Jamba 1.5"),
+    # Snowflake
+    ("arctic", "Snowflake Arctic"),
+    # Reka
+    ("reka_flash", "Reka Flash"),
+    # GLM
+    ("glm_4_5", "GLM-4.5"),
+    # MiniMax
+    ("minimax_m1", "MiniMax M1"),
+    # Moonshot
+    ("kimi_k2", "Kimi K2"),
+    # IBM Granite
+    ("granite_4", "Granite 4"),
+]
+
+
+def _series_for(model: dict) -> str:
+    mid = model["id"]
+    for prefix, series in _ID_PREFIX_TO_SERIES:
+        if mid.startswith(prefix):
+            return series
+    return model["family"].title()
+
+
 _FAMILY_TO_COMPANY = {
     "llama": "Meta", "qwen": "Alibaba", "deepseek": "DeepSeek",
     "gpt-oss": "OpenAI", "exaone": "LG AI Research",
@@ -1577,7 +1669,10 @@ def _company_for(model: dict) -> str:
 def main() -> None:
     SEED_DIR.mkdir(parents=True, exist_ok=True)
 
-    enriched = [{**m, "company": _company_for(m)} for m in MODELS]
+    enriched = [
+        {**m, "company": _company_for(m), "series": _series_for(m)}
+        for m in MODELS
+    ]
     df_models = pd.DataFrame(enriched)
     df_models.to_parquet(SEED_DIR / "models.parquet", index=False)
 

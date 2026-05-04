@@ -40,6 +40,7 @@ def _model_from_row(row: dict) -> Model:
         hf_repo=row["hf_repo"],
         release_date=row.get("release_date", ""),
         company=row.get("company", "") or "",
+        series=row.get("series", "") or "",
     )
 
 
