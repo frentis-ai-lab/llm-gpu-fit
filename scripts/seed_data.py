@@ -1630,6 +1630,102 @@ _ID_PREFIX_TO_SERIES = [
 ]
 
 
+# 패밀리/id별 공식 지원 언어 (모델 카드 기준).
+# "multi-N" = N개 언어 지원하는 글로벌 멀티언어 모델
+# 한국어 포함 여부는 "ko" 명시
+_LANGUAGES_BY_ID = {
+    # === Korean-native (전용 학습) ===
+    # capabilities=["ko_native"]가 이미 있는 모델은 languages도 ["ko", "en"]
+    "exaone_4_32b": ("ko", "en", "es"),
+    "exaone_4_1_2b": ("ko", "en", "es"),
+    "exaone_deep_32b": ("ko", "en"),
+    "exaone_deep_7_8b": ("ko", "en"),
+    "exaone_deep_2_4b": ("ko", "en"),
+    "exaone_3_5_32b": ("ko", "en"),
+    "exaone_3_5_7_8b": ("ko", "en"),
+    "ax_4_72b": ("ko", "en"),
+    "ax_4_light_7b": ("ko", "en"),
+    "ax_4_vl_light_7b": ("ko", "en"),
+    "hyperclovax_seed_text_1_5b": ("ko", "en"),
+    "hyperclovax_seed_text_0_5b": ("ko", "en"),
+    "hyperclovax_seed_vision_3b": ("ko", "en"),
+    "hyperclovax_seed_think_14b": ("ko", "en"),
+    "solar_pro_22b": ("ko", "en"),
+    "kullm3": ("ko", "en"),
+    "kanana_2_30b_a3b": ("ko", "en"),
+    "kanana_1_5_8b": ("ko", "en"),
+    "kanana_1_5_v_3b": ("ko", "en"),
+    "kanana_nano_2_1b": ("ko", "en"),
+    "tri_21b": ("ko", "en", "ja", "zh"),
+    "trillion_7b": ("ko", "en", "ja", "zh"),
+}
+
+_LANGUAGES_BY_FAMILY = {
+    # === Meta Llama ===
+    # Llama 3.x: 영문 위주 + 7-8개 유럽/아시아
+    "llama": ("en", "de", "fr", "it", "pt", "hi", "es", "th"),
+    # === Qwen (대규모 다국어 119개) ===
+    "qwen": ("multi-119", "en", "ko", "zh", "ja", "ru", "es", "fr", "de"),
+    # === DeepSeek (영중 위주) ===
+    "deepseek": ("en", "zh"),
+    # === GPT-OSS (영문 위주) ===
+    "gpt-oss": ("en",),
+    # === Mistral (영문 + EU) ===
+    "mistral": ("en", "fr", "de", "es", "it", "pt"),
+    # === Google Gemma (140+ 언어) ===
+    "gemma": ("multi-140", "en", "ko", "zh", "ja", "es", "fr", "de"),
+    # === Microsoft Phi (영문 위주) ===
+    "phi": ("en",),
+    # === IBM Granite (영문 + 일부 EU) ===
+    "ibm": ("en", "de", "es", "fr", "ja", "pt", "ar", "cs", "it", "ko", "nl", "zh"),
+    # === Zhipu GLM (영중) ===
+    "glm": ("en", "zh"),
+    # === MiniMax (영중) ===
+    "minimax": ("en", "zh"),
+    # === Moonshot Kimi (영중) ===
+    "moonshot": ("en", "zh"),
+    # === Tencent Hunyuan (영중) ===
+    "hunyuan": ("en", "zh"),
+    # === 01.AI Yi (영중) ===
+    "yi": ("en", "zh"),
+    # === Shanghai AI Lab InternLM (영중) ===
+    "internlm": ("en", "zh"),
+    # === OpenBMB MiniCPM (영중) ===
+    "openbmb": ("en", "zh"),
+    # === HuggingFace SmolLM (영문) ===
+    "smollm": ("en",),
+    # === TII Falcon (영문 + 아랍어) ===
+    "falcon": ("en", "ar", "es", "fr", "de"),
+    # === AI2 OLMo (영문) ===
+    "olmo": ("en",),
+    # === Cohere (Aya는 23개 언어, Command A는 영문 위주) ===
+    "cohere": ("multi-23", "en", "ko", "ja", "zh", "ar", "fr", "de",
+               "es", "it", "pt", "ru", "vi", "id", "tr", "hi"),
+    # === AI21 Jamba (영문 + EU) ===
+    "ai21": ("en", "fr", "es", "pt", "ar", "de", "it", "nl", "he"),
+    # === Snowflake Arctic (영문) ===
+    "snowflake": ("en",),
+    # === NVIDIA Nemotron (영문) ===
+    "nvidia": ("en",),
+    # === Reka (영문 위주) ===
+    "reka": ("en", "fr", "de", "es", "ja", "ko", "zh", "ar"),
+    # === Naver / SK / Upstage / KU / Kakao / Trillion = 한국어 ===
+    "naver": ("ko", "en"),
+    "skt": ("ko", "en"),
+    "solar": ("ko", "en"),
+    "kullm": ("ko", "en"),
+    "exaone": ("ko", "en"),
+    "kakao": ("ko", "en"),
+    "trillion": ("ko", "en", "ja", "zh"),
+}
+
+
+def _languages_for(model: dict) -> tuple[str, ...]:
+    if model["id"] in _LANGUAGES_BY_ID:
+        return _LANGUAGES_BY_ID[model["id"]]
+    return _LANGUAGES_BY_FAMILY.get(model["family"], ("en",))
+
+
 def _series_for(model: dict) -> str:
     mid = model["id"]
     for prefix, series in _ID_PREFIX_TO_SERIES:
@@ -1670,7 +1766,8 @@ def main() -> None:
     SEED_DIR.mkdir(parents=True, exist_ok=True)
 
     enriched = [
-        {**m, "company": _company_for(m), "series": _series_for(m)}
+        {**m, "company": _company_for(m), "series": _series_for(m),
+         "languages": list(_languages_for(m))}
         for m in MODELS
     ]
     df_models = pd.DataFrame(enriched)

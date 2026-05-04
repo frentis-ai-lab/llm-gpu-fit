@@ -68,16 +68,24 @@ def pick_quantization(model: Model, gpus: list[GPU], gpu_count: int,
     return None
 
 
+_KOREAN_WEIGHT = {
+    "native": 1.0,        # 한국어 전용 학습
+    "multilingual": 0.6,  # 다국어 모델 + 한국어 명시 지원
+    "partial": 0.3,       # 다국어 100+ 모델
+    "none": 0.0,
+}
+
+
 def _constraint_score(ui: UserInput, model: Model) -> float:
-    checks = []
+    checks: list[float] = []
     if ui.commercial_required:
-        checks.append(model.license_commercial_ok)
+        checks.append(1.0 if model.license_commercial_ok else 0.0)
     if ui.korean_priority:
-        checks.append("ko_native" in model.capabilities)
+        checks.append(_KOREAN_WEIGHT.get(model.korean_strength, 0.0))
     if ui.tool_calling_required:
-        checks.append("tool_use" in model.capabilities)
+        checks.append(1.0 if "tool_use" in model.capabilities else 0.0)
     if ui.onprem_required:
-        checks.append(True)
+        checks.append(1.0)
     return 1.0 if not checks else sum(checks) / len(checks)
 
 

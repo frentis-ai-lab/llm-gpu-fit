@@ -47,7 +47,10 @@ class Model:
     hf_repo: str
     release_date: str = ""
     company: str = ""
-    series: str = ""  # 예: "Qwen3", "EXAONE Deep", "Llama 3.3"
+    series: str = ""
+    # ISO 639-1 코드 리스트. 예: ["en", "ko", "zh"].
+    # 100+ 언어 학습된 글로벌 멀티언어 모델은 ["multi-100"] 같은 표식 사용.
+    languages: tuple[str, ...] = ()
 
     def is_moe(self) -> bool:
         return self.params_active_b < self.params_total_b
@@ -59,6 +62,26 @@ class Model:
     @property
     def series_or_family(self) -> str:
         return self.series or self.family.title()
+
+    @property
+    def supports_korean(self) -> bool:
+        """한국어 네이티브이거나 다국어 지원 중 한국어 포함."""
+        if "ko_native" in self.capabilities:
+            return True
+        return "ko" in self.languages or any(
+            lang.startswith("multi-") for lang in self.languages
+        )
+
+    @property
+    def korean_strength(self) -> str:
+        """한국어 강도: 'native' / 'multilingual' / 'partial' / 'none'"""
+        if "ko_native" in self.capabilities:
+            return "native"
+        if "ko" in self.languages:
+            return "multilingual"
+        if any(lang.startswith("multi-") for lang in self.languages):
+            return "partial"
+        return "none"
 
 
 @dataclass

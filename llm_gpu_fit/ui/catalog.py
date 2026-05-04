@@ -55,11 +55,43 @@ def _capability_badge(caps: list[str]) -> str:
     return " ".join(icons[c] for c in caps if c in icons) or "—"
 
 
+_LANG_FLAGS = {
+    "en": "🇺🇸", "ko": "🇰🇷", "zh": "🇨🇳", "ja": "🇯🇵",
+    "es": "🇪🇸", "fr": "🇫🇷", "de": "🇩🇪", "it": "🇮🇹",
+    "pt": "🇵🇹", "ru": "🇷🇺", "ar": "🇸🇦", "hi": "🇮🇳",
+    "vi": "🇻🇳", "th": "🇹🇭", "id": "🇮🇩", "tr": "🇹🇷",
+    "nl": "🇳🇱", "pl": "🇵🇱", "he": "🇮🇱", "fa": "🇮🇷",
+    "el": "🇬🇷", "ro": "🇷🇴", "uk": "🇺🇦", "cs": "🇨🇿",
+}
+
+
+def _languages_badge(langs: tuple[str, ...]) -> str:
+    if not langs:
+        return "🇺🇸"  # 기본 영문
+    multi = next((lang for lang in langs if lang.startswith("multi-")), None)
+    if multi:
+        n = multi.split("-")[1]
+        flags = [_LANG_FLAGS[lang] for lang in langs if lang in _LANG_FLAGS][:5]
+        return f"🌍×{n} " + "".join(flags)
+    flags = [_LANG_FLAGS[lang] for lang in langs if lang in _LANG_FLAGS]
+    return "".join(flags) if flags else "🇺🇸"
+
+
+def _korean_strength_badge(strength: str) -> str:
+    return {
+        "native": "🇰🇷 네이티브",
+        "multilingual": "🇰🇷 다국어",
+        "partial": "🇰🇷? 다국어100+",
+        "none": "—",
+    }.get(strength, "—")
+
+
 def _commercial_str(model) -> str:
     return "✓상용" if model.license_commercial_ok else "✗비상용"
 
 
-FilterMode = Literal["all", "korean", "vision", "audio", "moe", "commercial",
+FilterMode = Literal["all", "korean", "korean_native", "korean_multilingual",
+                     "vision", "audio", "moe", "commercial",
                      "non_commercial", "small", "medium", "large"]
 
 
@@ -72,7 +104,11 @@ def build_catalog_df(filter_mode: FilterMode = "all",
             continue
         if series_filter != "전체" and model.series_or_family != series_filter:
             continue
-        if filter_mode == "korean" and "ko_native" not in model.capabilities:
+        if filter_mode == "korean" and not model.supports_korean:
+            continue
+        if filter_mode == "korean_native" and model.korean_strength != "native":
+            continue
+        if filter_mode == "korean_multilingual" and model.korean_strength != "multilingual":
             continue
         if filter_mode == "vision" and "vision" not in model.modalities:
             continue
@@ -101,6 +137,8 @@ def build_catalog_df(filter_mode: FilterMode = "all",
             "파라미터": _params_str(model.params_total_b, model.params_active_b),
             "컨텍스트": _ctx_str(model.context_window),
             "모달": _modality_badge(model.modalities),
+            "언어": _languages_badge(model.languages),
+            "한국어": _korean_strength_badge(model.korean_strength),
             "기능": _capability_badge(model.capabilities),
             "라이선스": _commercial_str(model),
             "벤치 수": len(bench),
@@ -117,12 +155,15 @@ def build_catalog_df(filter_mode: FilterMode = "all",
 
 def build_series_summary_df(filter_mode: FilterMode = "all",
                             company_filter: str = "전체") -> pd.DataFrame:
-    """시리즈별 요약: 변형 수, 파라미터 범위, 컨텍스트, 라이선스, 출시일, 회사."""
     by_series: dict[str, list] = defaultdict(list)
     for model in load_models():
         if company_filter != "전체" and model.company_or_family != company_filter:
             continue
-        if filter_mode == "korean" and "ko_native" not in model.capabilities:
+        if filter_mode == "korean" and not model.supports_korean:
+            continue
+        if filter_mode == "korean_native" and model.korean_strength != "native":
+            continue
+        if filter_mode == "korean_multilingual" and model.korean_strength != "multilingual":
             continue
         if filter_mode == "vision" and "vision" not in model.modalities:
             continue
@@ -160,6 +201,8 @@ def build_series_summary_df(filter_mode: FilterMode = "all",
             "모달": _modality_badge(sorted(modalities_union,
                                           key=lambda x: ["text", "vision", "audio"].index(x)
                                           if x in ["text", "vision", "audio"] else 99)),
+            "언어": _languages_badge(rep.languages),
+            "한국어": _korean_strength_badge(rep.korean_strength),
             "기능": _capability_badge(sorted(capabilities_union)),
             "라이선스": _commercial_str(rep),
             "최신 출시": latest_date,
@@ -203,7 +246,9 @@ def build_catalog_panel() -> dict:
                 label="속성 필터",
                 choices=[
                     ("전체", "all"),
-                    ("🇰🇷 한국어 네이티브", "korean"),
+                    ("🇰🇷 한국어 지원", "korean"),
+                    ("🇰🇷 한국어 네이티브", "korean_native"),
+                    ("🇰🇷 한국어 다국어", "korean_multilingual"),
                     ("👁 비전 지원", "vision"),
                     ("🎙 음성 지원", "audio"),
                     ("MoE 시리즈", "moe"),
@@ -231,7 +276,9 @@ def build_catalog_panel() -> dict:
                 label="속성 필터",
                 choices=[
                     ("전체 모델", "all"),
-                    ("🇰🇷 한국어 네이티브", "korean"),
+                    ("🇰🇷 한국어 지원 (네이티브+다국어)", "korean"),
+                    ("🇰🇷 한국어 네이티브 전용", "korean_native"),
+                    ("🇰🇷 한국어 포함 다국어", "korean_multilingual"),
                     ("👁 비전 지원", "vision"),
                     ("🎙 음성 지원", "audio"),
                     ("MoE 모델", "moe"),

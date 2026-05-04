@@ -41,6 +41,7 @@ def _model_from_row(row: dict) -> Model:
         release_date=row.get("release_date", ""),
         company=row.get("company", "") or "",
         series=row.get("series", "") or "",
+        languages=tuple(row["languages"]) if "languages" in row and row["languages"] is not None and len(row["languages"]) > 0 else (),
     )
 
 
